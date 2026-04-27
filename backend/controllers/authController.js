@@ -15,7 +15,7 @@ exports.register = async (req, res) => {
     }
 
     // Check if email already exists
-    const [existing] = await pool.query('SELECT id FROM users WHERE email = ?', [email]);
+    const [existing] = await pool.query('SELECT id FROM users WHERE email = ? AND deleted_at IS NULL', [email]);
     if (existing.length > 0) {
       return res.status(400).json({ message: 'Email sudah terdaftar.' });
     }
@@ -52,9 +52,9 @@ exports.login = async (req, res) => {
       return res.status(400).json({ message: 'Email dan password wajib diisi.' });
     }
 
-    const [users] = await pool.query('SELECT * FROM users WHERE email = ?', [email]);
+    const [users] = await pool.query('SELECT * FROM users WHERE email = ? AND deleted_at IS NULL', [email]);
     if (users.length === 0) {
-      return res.status(401).json({ message: 'Email atau password salah.' });
+      return res.status(401).json({ message: 'Email atau password salah, atau akun telah dihapus.' });
     }
 
     const user = users[0];

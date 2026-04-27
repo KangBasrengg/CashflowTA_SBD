@@ -8,25 +8,25 @@ exports.getDashboard = async (req, res) => {
 
     // Total income
     const [incomeResult] = await pool.query(
-      `SELECT COALESCE(SUM(amount), 0) as total FROM transactions ${userFilter} ${userFilter ? 'AND' : 'WHERE'} type = 'income'`,
+      `SELECT COALESCE(SUM(amount), 0) as total FROM transactions ${userFilter} ${userFilter ? 'AND' : 'WHERE'} type = 'income' AND deleted_at IS NULL`,
       params
     );
 
     // Total expense
     const [expenseResult] = await pool.query(
-      `SELECT COALESCE(SUM(amount), 0) as total FROM transactions ${userFilter} ${userFilter ? 'AND' : 'WHERE'} type = 'expense'`,
+      `SELECT COALESCE(SUM(amount), 0) as total FROM transactions ${userFilter} ${userFilter ? 'AND' : 'WHERE'} type = 'expense' AND deleted_at IS NULL`,
       params
     );
 
     // Recent transactions
     const [recentTransactions] = await pool.query(
-      `SELECT t.*, u.name as user_name FROM transactions t JOIN users u ON t.user_id = u.id ${userFilter ? 'WHERE t.user_id = ?' : ''} ORDER BY t.date DESC, t.created_at DESC LIMIT 5`,
+      `SELECT t.*, u.name as user_name FROM transactions t JOIN users u ON t.user_id = u.id ${userFilter ? 'WHERE t.user_id = ? AND t.deleted_at IS NULL' : 'WHERE t.deleted_at IS NULL'} ORDER BY t.date DESC, t.created_at DESC LIMIT 5`,
       params
     );
 
     // Transaction count
     const [countResult] = await pool.query(
-      `SELECT COUNT(*) as total FROM transactions ${userFilter}`,
+      `SELECT COUNT(*) as total FROM transactions ${userFilter} ${userFilter ? 'AND' : 'WHERE'} deleted_at IS NULL`,
       params
     );
 
@@ -59,7 +59,7 @@ exports.getChartData = async (req, res) => {
         SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END) as income,
         SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END) as expense
       FROM transactions 
-      WHERE date >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH) ${userFilter}
+      WHERE date >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH) AND deleted_at IS NULL ${userFilter}
       GROUP BY DATE_FORMAT(date, '%Y-%m')
       ORDER BY month ASC`,
       params
@@ -72,7 +72,7 @@ exports.getChartData = async (req, res) => {
         type,
         SUM(amount) as total
       FROM transactions 
-      WHERE date >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH) ${userFilter}
+      WHERE date >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH) AND deleted_at IS NULL ${userFilter}
       GROUP BY category, type
       ORDER BY total DESC`,
       params
@@ -106,7 +106,7 @@ exports.getMonthlyReport = async (req, res) => {
         SUM(CASE WHEN t.type = 'income' THEN t.amount ELSE 0 END) as income,
         SUM(CASE WHEN t.type = 'expense' THEN t.amount ELSE 0 END) as expense
       FROM transactions t
-      WHERE YEAR(t.date) = ? AND MONTH(t.date) = ? ${userFilter}
+      WHERE YEAR(t.date) = ? AND MONTH(t.date) = ? AND t.deleted_at IS NULL ${userFilter}
       GROUP BY DATE_FORMAT(t.date, '%Y-%m-%d')
       ORDER BY date ASC`,
       params
@@ -123,7 +123,7 @@ exports.getMonthlyReport = async (req, res) => {
         SUM(t.amount) as total,
         COUNT(*) as count
       FROM transactions t
-      WHERE YEAR(t.date) = ? AND MONTH(t.date) = ? ${userFilter}
+      WHERE YEAR(t.date) = ? AND MONTH(t.date) = ? AND t.deleted_at IS NULL ${userFilter}
       GROUP BY t.category, t.type
       ORDER BY total DESC`,
       params2
@@ -139,7 +139,7 @@ exports.getMonthlyReport = async (req, res) => {
         COALESCE(SUM(CASE WHEN t.type = 'expense' THEN t.amount ELSE 0 END), 0) as totalExpense,
         COUNT(*) as totalTransactions
       FROM transactions t
-      WHERE YEAR(t.date) = ? AND MONTH(t.date) = ? ${userFilter}`,
+      WHERE YEAR(t.date) = ? AND MONTH(t.date) = ? AND t.deleted_at IS NULL ${userFilter}`,
       params3
     );
 

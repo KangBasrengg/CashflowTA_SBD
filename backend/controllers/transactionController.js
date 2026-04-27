@@ -9,12 +9,12 @@ exports.getTransactions = async (req, res) => {
       SELECT t.*, u.name as user_name 
       FROM transactions t 
       JOIN users u ON t.user_id = u.id 
-      WHERE 1=1
+      WHERE t.deleted_at IS NULL
     `;
     let countQuery = `
       SELECT COUNT(*) as total 
       FROM transactions t 
-      WHERE 1=1
+      WHERE t.deleted_at IS NULL
     `;
     const params = [];
     const countParams = [];
@@ -118,10 +118,10 @@ exports.updateTransaction = async (req, res) => {
     const { id } = req.params;
     const { type, amount, category, description, date } = req.body;
 
-    // Check ownership
-    const [existing] = await pool.query('SELECT * FROM transactions WHERE id = ?', [id]);
+    // Check ownership and if not deleted
+    const [existing] = await pool.query('SELECT * FROM transactions WHERE id = ? AND deleted_at IS NULL', [id]);
     if (existing.length === 0) {
-      return res.status(404).json({ message: 'Transaksi tidak ditemukan.' });
+      return res.status(404).json({ message: 'Transaksi tidak ditemukan atau sudah dihapus.' });
     }
 
     if (req.user.role !== 'admin' && existing[0].user_id !== req.user.id) {
@@ -163,17 +163,18 @@ exports.deleteTransaction = async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Check ownership
-    const [existing] = await pool.query('SELECT * FROM transactions WHERE id = ?', [id]);
+    // Check ownership and if not deleted
+    const [existing] = await pool.query('SELECT * FROM transactions WHERE id = ? AND deleted_at IS NULL', [id]);
     if (existing.length === 0) {
-      return res.status(404).json({ message: 'Transaksi tidak ditemukan.' });
+      return res.status(404).json({ message: 'Transaksi tidak ditemukan atau sudah dihapus.' });
     }
 
     if (req.user.role !== 'admin' && existing[0].user_id !== req.user.id) {
       return res.status(403).json({ message: 'Anda tidak memiliki akses ke transaksi ini.' });
     }
 
-    await pool.query('DELETE FROM transactions WHERE id = ?', [id]);
+    // Soft delete: set deleted_at to current timestamp
+    await pool.query('UPDATE transactions SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?', [id]);
 
     res.json({ message: 'Transaksi berhasil dihapus.' });
   } catch (error) {

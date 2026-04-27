@@ -27,17 +27,20 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'Cashflow API berjalan.' });
 });
 
-// Start server
-async function startServer() {
-  try {
-    await initDatabase();
-    app.listen(PORT, () => {
-      console.log(`🚀 Server berjalan di http://localhost:${PORT}`);
-    });
-  } catch (error) {
-    console.error('❌ Gagal memulai server:', error);
-    process.exit(1);
+// Start server locally or export for Vercel
+if (process.env.NODE_ENV !== 'production' && require.main === module) {
+  async function startServer() {
+    try {
+      await initDatabase();
+      app.listen(PORT, () => {
+        console.log(`🚀 Server berjalan di http://localhost:${PORT}`);
+      });
+    } catch (error) {
+      console.error('❌ Gagal memulai server:', error);
+      process.exit(1);
+    }
   }
+  startServer();
 }
 
-startServer();
+module.exports = app;

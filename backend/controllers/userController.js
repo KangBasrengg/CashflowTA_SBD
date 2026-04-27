@@ -4,7 +4,7 @@ const bcrypt = require('bcryptjs');
 exports.getAllUsers = async (req, res) => {
   try {
     const [users] = await pool.query(
-      'SELECT id, name, email, role, created_at FROM users ORDER BY created_at DESC'
+      'SELECT id, name, email, role, created_at FROM users WHERE deleted_at IS NULL ORDER BY created_at DESC'
     );
     res.json(users);
   } catch (error) {
@@ -19,7 +19,7 @@ exports.createUser = async (req, res) => {
     if (!name || !email || !password) {
       return res.status(400).json({ message: 'Semua field wajib diisi.' });
     }
-    const [existing] = await pool.query('SELECT id FROM users WHERE email = ?', [email]);
+    const [existing] = await pool.query('SELECT id FROM users WHERE email = ? AND deleted_at IS NULL', [email]);
     if (existing.length > 0) {
       return res.status(400).json({ message: 'Email sudah terdaftar.' });
     }
@@ -79,10 +79,15 @@ exports.deleteUser = async (req, res) => {
       return res.status(400).json({ message: 'Anda tidak bisa menghapus akun sendiri.' });
     }
 
-    const [result] = await pool.query('DELETE FROM users WHERE id = ?', [id]);
+    // Soft delete with email modification to prevent unique constraint issues
+    const deleteEmailPrefix = `deleted_${Date.now()}_`;
+    const [result] = await pool.query(
+      'UPDATE users SET deleted_at = CURRENT_TIMESTAMP, email = CONCAT(?, email) WHERE id = ?', 
+      [deleteEmailPrefix, id]
+    );
 
     if (result.affectedRows === 0) {
-      return res.status(404).json({ message: 'User tidak ditemukan.' });
+      return res.status(404).json({ message: 'User tidak ditemukan atau sudah dihapus.' });
     }
 
     res.json({ message: 'User berhasil dihapus.' });
