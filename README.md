@@ -9,6 +9,11 @@ A full-stack web application for monitoring cashflow, built with React (frontend
 - Administrative User Management
 - Excel Export Functionality
 
+## Demo / Test Accounts
+- **Role**: Administrator
+- **Email**: `admin@gmail.com`
+- **Password**: `admin123`
+
 ## Tech Stack
 - **Frontend**: React, Vite, Vanilla CSS
 - **Backend**: Node.js, Express, MySQL
