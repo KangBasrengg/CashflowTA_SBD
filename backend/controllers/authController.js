@@ -40,7 +40,7 @@ exports.register = async (req, res) => {
     });
   } catch (error) {
     console.error('Register error:', error);
-    res.status(500).json({ message: 'Terjadi kesalahan server.' });
+    res.status(500).json({ message: `Terjadi kesalahan server: ${error.message}` });
   }
 };
 
@@ -76,6 +76,6 @@ exports.login = async (req, res) => {
     });
   } catch (error) {
     console.error('Login error:', error);
-    res.status(500).json({ message: 'Terjadi kesalahan server.' });
+    res.status(500).json({ message: `Terjadi kesalahan server: ${error.message}` });
   }
 };
